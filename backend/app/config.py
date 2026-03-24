@@ -1,4 +1,21 @@
+from urllib.parse import urlparse, urlunparse
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_database_url(database_url: str) -> str:
+    if not database_url:
+        return database_url
+
+    parsed = urlparse(database_url)
+
+    if parsed.scheme == "postgres":
+        return urlunparse(parsed._replace(scheme="postgresql+psycopg"))
+
+    if parsed.scheme == "postgresql":
+        return urlunparse(parsed._replace(scheme="postgresql+psycopg"))
+
+    return database_url
 
 
 class Settings(BaseSettings):
@@ -20,3 +37,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+settings.database_url = normalize_database_url(settings.database_url)
