@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:3000"
     cors_allow_all: bool = False
     job_runner_mode: str = "celery"
+    startup_db_retries: int = 20
+    startup_db_retry_delay_seconds: int = 3
 
 
 settings = Settings()

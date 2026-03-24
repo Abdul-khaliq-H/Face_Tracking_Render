@@ -1,13 +1,15 @@
 from pathlib import Path
+import time
 
 from fastapi import BackgroundTasks, Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from sqlalchemy.exc import OperationalError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.database import Base, engine
+from app.database import Base, SessionLocal, engine
 from app.models import JobStatus, User, VideoJob
 from app.schemas import AuthResponse, JobResponse, LoginRequest, RegisterRequest
 from app.security import (
@@ -20,10 +22,6 @@ from app.security import (
 from app.storage import ensure_storage_dirs, make_output_path, make_upload_path
 from app.tasks import process_video_job, run_video_job
 
-
-Base.metadata.create_all(bind=engine)
-ensure_storage_dirs()
-
 app = FastAPI(title=settings.app_name)
 
 allowed_origins = ["*"] if settings.cors_allow_all else [settings.frontend_origin, "http://localhost:3000"]
@@ -34,6 +32,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def startup() -> None:
+    ensure_storage_dirs()
+
+    for attempt in range(1, settings.startup_db_retries + 1):
+        try:
+            with SessionLocal() as db:
+                db.execute(select(1))
+            Base.metadata.create_all(bind=engine)
+            return
+        except OperationalError:
+            if attempt == settings.startup_db_retries:
+                raise
+            time.sleep(settings.startup_db_retry_delay_seconds)
 
 
 def serialize_job(job: VideoJob) -> JobResponse:
