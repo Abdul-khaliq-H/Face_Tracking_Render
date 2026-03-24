@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    build:
+      context: /Users/abdul-23344/Projects/Codex_face_track/backend
+    env_file:
+      - /Users/abdul-23344/Projects/Codex_face_track/.env
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - /Users/abdul-23344/Projects/Codex_face_track/backend:/app
+      - backend_uploads:/app/uploads
+      - backend_processed:/app/processed
+
+  worker:
+    build:
+      context: /Users/abdul-23344/Projects/Codex_face_track/backend
+    command: celery -A app.tasks worker --loglevel=info
+    env_file:
+      - /Users/abdul-23344/Projects/Codex_face_track/.env
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - /Users/abdul-23344/Projects/Codex_face_track/backend:/app
+      - backend_uploads:/app/uploads
+      - backend_processed:/app/processed
+
+  frontend:
+    build:
+      context: /Users/abdul-23344/Projects/Codex_face_track/frontend
+    env_file:
+      - /Users/abdul-23344/Projects/Codex_face_track/.env
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - /Users/abdul-23344/Projects/Codex_face_track/frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+  backend_uploads:
+  backend_processed:
+

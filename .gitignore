@@ -1,0 +1,14 @@
+.next
+node_modules
+.env
+.env.local
+__pycache__
+*.pyc
+.pytest_cache
+uploads
+processed
+.DS_Store
+backend/.venv
+backend/uploads
+backend/processed
+

@@ -1,0 +1,52 @@
+services:
+  - name: creatortrack-api-demo
+    type: web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: ./backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: creatortrack-db-demo
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: API_BASE_URL
+        value: /api
+      - key: FRONTEND_ORIGIN
+        value: "*"
+      - key: CORS_ALLOW_ALL
+        value: "true"
+      - key: PROCESSOR_MODE
+        value: mock
+      - key: JOB_RUNNER_MODE
+        value: inline
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      - key: PROCESSED_DIR
+        value: /app/processed
+
+  - name: creatortrack-frontend-demo
+    type: web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: ./frontend
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: /api
+      - key: API_INTERNAL_BASE_URL
+        fromService:
+          name: creatortrack-api-demo
+          type: web
+          property: hostport
+
+databases:
+  - name: creatortrack-db-demo
+    plan: free
+    region: oregon
+    databaseName: creatortrack
